@@ -26,6 +26,9 @@
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
 #include "esp_wifi.h"
+#include <lwip/sockets.h>
+#include <lwip/netdb.h>
+#include <netinet/in.h>
 
 namespace esphome {
 namespace espectre {

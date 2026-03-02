@@ -14,6 +14,8 @@
 #include <lwip/sockets.h>
 #include <lwip/netdb.h>
 #include <cstring>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 namespace esphome {
 namespace espectre {
@@ -27,15 +29,8 @@ void RawCSIStreamer::setup() {
 
 void RawCSIStreamer::loop() {
   // Non-blocking loop - check if we should send
+  // Actual sending happens via callback from CSI manager, so this is just a placeholder
   if (!running_) return;
-  
-  uint32_t now_ms = App.get_loop_period_millis();
-  
-  if (now_ms >= next_send_time_ms_) {
-    // Time to send, but we need actual CSI data
-    // This is a placeholder - actual sending happens via callback from CSI manager
-    next_send_time_ms_ = now_ms + interval_ms_;
-  }
 }
 
 void RawCSIStreamer::init(const std::string &server_ip, uint16_t server_port, uint32_t interval_ms) {
@@ -171,24 +166,24 @@ bool RawCSIStreamer::send_binary_packet_(const int8_t* csi_data, size_t csi_len,
   // Copy CSI payload (128 bytes)
   memcpy(&buf[RAW_CSI_HEADER_SIZE], csi_data, csi_len);
   
-  // Send via UDP
-  int sock_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  // Send via UDP using lwIP socket API
+  int sock_fd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (sock_fd < 0) {
-    ESP_LOGE(TAG, "Failed to create socket");
+    ESP_LOGE(TAG, "Failed to create socket: err=%d", sock_fd);
     return false;
   }
   
-  // Set non-blocking with timeout
+  // Set send timeout (non-blocking)
   struct timeval tv;
   tv.tv_sec = 0;
   tv.tv_usec = 10000;  // 10ms timeout
-  setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+  ::setsockopt(sock_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
   
   // Send packet
-  ssize_t sent = sendto(sock_fd, packet_buffer_, RAW_CSI_PACKET_SIZE, 0,
-                       (struct sockaddr*)&server_addr_, sizeof(server_addr_));
+  ssize_t sent = ::sendto(sock_fd, packet_buffer_, RAW_CSI_PACKET_SIZE, 0,
+                         (struct sockaddr*)&server_addr_, sizeof(server_addr_));
   
-  close(sock_fd);
+  ::close(sock_fd);
   
   if (sent != RAW_CSI_PACKET_SIZE) {
     ESP_LOGW(TAG, "Send failed: sent=%zd, expected=%u", sent, RAW_CSI_PACKET_SIZE);
