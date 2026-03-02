@@ -360,6 +360,29 @@ if __name__ == '__main__':
 
 ---
 
+## Considerações por Chip
+
+### ESP32-C6 (Recomendado)
+- **Melhor qualidade CSI:** WiFi 6, menos ruído
+- **Configuração:** Automática (já incluída)
+- **Uso ideal:** Aplicações críticas de precisão
+
+### ESP32-S3 (LilyGO S3R8)
+- **Qualidade CSI:** Boa, mas um pouco mais ruidosa que C6
+- **Configuração:** Otimizada para HT-LTF (64 subcarriers)
+- **Limitações:** 
+  - Sem WiFi 6 (apenas 802.11n)
+  - Pode ter mais pacotes filtrados
+  - Sensibilidade ligeiramente menor
+- **Vantagens:** Mais GPIO, BLE + WiFi, mais memória
+- **Configuração automática:** Detectada via `CONFIG_IDF_TARGET_ESP32S3`
+
+### ESP32-C5
+- **Emergente:** Novo chip, bom para CSI
+- **Configuração:** WiFi 6, similar ao C6
+
+---
+
 ## Testes Recomendados
 
 ### 1. Verificar Conexão WiFi

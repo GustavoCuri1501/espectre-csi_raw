@@ -3,16 +3,17 @@
 
 esphome:
   name: espectre-csi
-  friendly_name: ESPectre CSI
+  friendly_name: ESPectre CSI LilyGO
   
-  # ESP32-C6 recommended (best CSI quality)
+  # ESP32-S3 LilyGO S3R8 (WiFi + BLE)
   esp32:
-    board: esp32-c6-devkitc-1
+    board: lvgl_v8
     framework:
       type: esp-idf
-
+      version: recommended
+      
 logger:
-  # USB Serial JTAG for logging (required on C6)
+  # USB Serial JTAG for logging (required on S3)
   level: DEBUG
   
 wifi:

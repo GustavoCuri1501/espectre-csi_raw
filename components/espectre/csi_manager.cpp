@@ -248,7 +248,21 @@ esp_err_t CSIManager::configure_platform_specific_() {
     .val_scale_cfg = 0,
     .dump_ack_en = 0,
   };
+#elif CONFIG_IDF_TARGET_ESP32S3
+  // ESP32-S3 (LilyGO S3R8): Classic CSI format, optimized for motion detection
+  // Note: S3 CSI quality is good but slightly noisier than C6
+  wifi_csi_config_t csi_config = {
+    .lltf_en = false,          // Disable legacy LTF (use HT for better quality)
+    .htltf_en = true,          // Enable HT-LTF for 64 subcarriers
+    .stbc_htltf2_en = false,   // Disable STBC (we handle it in software)
+    .ltf_merge_en = false,     // Disable merging (keep individual measurements)
+    .channel_filter_en = false,// Disable channel filter (get all packets)
+    .manu_scale = false,       // Use automatic scaling
+    .shift = 0,                // No shift (raw values)
+  };
+  ESP_LOGI(TAG, "Using ESP32-S3 CSI configuration (LilyGO S3R8)");
 #else
+  // Default fallback (should not reach here on supported chips)
   wifi_csi_config_t csi_config = {
     .lltf_en = false,
     .htltf_en = true,
@@ -258,9 +272,9 @@ esp_err_t CSIManager::configure_platform_specific_() {
     .manu_scale = false,
     .shift = 0,
   };
+  ESP_LOGW(TAG, "Using generic CSI configuration for %s", CONFIG_IDF_TARGET);
 #endif
   
-  ESP_LOGI(TAG, "Using %s CSI configuration", CONFIG_IDF_TARGET);
   return wifi_csi_->set_csi_config(&csi_config);
 }
 
