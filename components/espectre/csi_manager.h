@@ -31,6 +31,9 @@ using csi_processed_callback_t = std::function<void(MotionState, uint32_t)>;
 // Callback type for game mode (called every packet with movement and threshold)
 using game_mode_callback_t = std::function<void(float movement, float threshold)>;
 
+// Callback type for raw CSI data streaming (called every packet with full CSI)
+using raw_csi_callback_t = std::function<void(const int8_t*, size_t, uint32_t)>;
+
 /**
  * CSI Manager
  * 
@@ -137,6 +140,15 @@ class CSIManager {
   }
   
   /**
+   * Set raw CSI streaming callback
+   * 
+   * @param callback Function to call with raw CSI data (int8*, length, timestamp)
+   */
+  void set_raw_csi_callback(raw_csi_callback_t callback) {
+    raw_csi_callback_ = callback;
+  }
+  
+  /**
    * Get the detector instance
    */
   BaseDetector* get_detector() { return detector_; }
@@ -155,6 +167,7 @@ class CSIManager {
   NBVICalibrator* calibrator_{nullptr};
   csi_processed_callback_t packet_callback_;
   game_mode_callback_t game_mode_callback_;
+  raw_csi_callback_t raw_csi_callback_;
   uint32_t publish_rate_{100};
   volatile uint32_t packets_processed_{0};
   volatile uint32_t packets_filtered_{0};

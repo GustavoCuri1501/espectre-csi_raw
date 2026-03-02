@@ -36,6 +36,7 @@
 #include "traffic_generator_manager.h"
 #include "udp_listener.h"
 #include "serial_streamer.h"
+#include "raw_csi_streamer.h"
 
 namespace esphome {
 namespace espectre {
@@ -100,6 +101,12 @@ class ESpectreComponent : public Component {
   void set_hampel_enabled(bool enabled) { this->hampel_enabled_ = enabled; }
   void set_hampel_window(uint8_t window) { this->hampel_window_ = window; }
   void set_hampel_threshold(float threshold) { this->hampel_threshold_ = threshold; }
+  
+  // Raw CSI streaming configuration
+  void set_raw_csi_enabled(bool enabled) { this->raw_csi_enabled_ = enabled; }
+  void set_raw_csi_server_ip(const std::string &ip) { this->raw_csi_server_ip_ = ip; }
+  void set_raw_csi_server_port(uint16_t port) { this->raw_csi_server_port_ = port; }
+  void set_raw_csi_interval(uint32_t interval_ms) { this->raw_csi_interval_ms_ = interval_ms; }
   
   // Subcarrier selection (optional, defaults to auto-calibrated or DEFAULT_SUBCARRIERS)
   void set_selected_subcarriers(const std::vector<uint8_t> &subcarriers) {
@@ -174,6 +181,7 @@ class ESpectreComponent : public Component {
   TrafficGeneratorManager traffic_generator_;
   UDPListener udp_listener_;
   SerialStreamer serial_streamer_;
+  RawCSIStreamer raw_csi_streamer_;         // Raw CSI data streaming
   
   // Number controls
   number::Number *threshold_number_{nullptr};
@@ -187,6 +195,12 @@ class ESpectreComponent : public Component {
   // State flags
   bool ready_to_publish_{false};      // True when CSI is ready and calibration done
   bool threshold_republished_{false}; // True after threshold has been re-published to HA
+  
+  // Raw CSI configuration
+  bool raw_csi_enabled_{false};
+  std::string raw_csi_server_ip_;
+  uint16_t raw_csi_server_port_{5001};
+  uint32_t raw_csi_interval_ms_{10};  // 10ms = 100Hz default
 };
 
 }  // namespace espectre

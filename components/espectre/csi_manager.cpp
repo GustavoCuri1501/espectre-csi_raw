@@ -74,6 +74,12 @@ void CSIManager::process_packet(wifi_csi_info_t* data) {
     return;
   }
   
+  // Send raw CSI data if callback is registered (before any filtering)
+  if (raw_csi_callback_) {
+    uint32_t timestamp = esp_timer_get_time() / 1000;  // Convert to milliseconds
+    raw_csi_callback_(data->buf, data->len, timestamp);
+  }
+  
   // STBC workaround (GitHub issue #76, espressif/esp-csi#238)
   // Multi-antenna routers with STBC TX send two HT training fields per frame
   // (HT-LTF1 + HT-LTF2), so the CSI callback receives 256 bytes (128 SC)

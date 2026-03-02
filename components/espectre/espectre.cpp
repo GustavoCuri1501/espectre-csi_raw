@@ -66,6 +66,15 @@ void ESpectreComponent::setup() {
     this->send_system_info_();
   });
   
+  // Initialize raw CSI streamer if enabled
+  if (this->raw_csi_enabled_) {
+    this->raw_csi_streamer_.init(
+      this->raw_csi_server_ip_,
+      this->raw_csi_server_port_,
+      this->raw_csi_interval_ms_
+    );
+  }
+  
   // 3. Initialize CSI manager with detector
   this->csi_manager_.init(
     this->detector_,
@@ -123,6 +132,28 @@ void ESpectreComponent::on_wifi_connected_() {
         }
       }
     );
+    
+    // Set up raw CSI streaming callback (if enabled)
+    if (this->raw_csi_enabled_) {
+      this->csi_manager_.set_raw_csi_callback(
+        [this](const int8_t* csi_data, size_t csi_len, uint32_t timestamp) {
+          // Get WiFi channel and gain lock status
+          uint8_t channel = 0;
+          bool gain_locked = this->csi_manager_.is_gain_locked();
+          
+          wifi_ap_record_t ap_info;
+          if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
+            channel = ap_info.primary;
+          }
+          
+          this->raw_csi_streamer_.send_packet(csi_data, csi_len, timestamp, channel, gain_locked);
+        }
+      );
+      
+      // Start raw CSI streaming
+      this->raw_csi_streamer_.start();
+      ESP_LOGI(TAG, "Raw CSI streaming enabled");
+    }
   }
   
   // Start traffic generator or UDP listener (external traffic mode)
@@ -187,6 +218,11 @@ void ESpectreComponent::on_wifi_disconnected_() {
   // Stop UDP listener
   if (this->udp_listener_.is_running()) {
     this->udp_listener_.stop();
+  }
+  
+  // Stop raw CSI streaming
+  if (this->raw_csi_streamer_.is_running()) {
+    this->raw_csi_streamer_.stop();
   }
   
   // Reset flags
