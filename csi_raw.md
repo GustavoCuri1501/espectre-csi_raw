@@ -217,7 +217,7 @@ if config[CONF_RAW_CSI_ENABLED]:
 ```yaml
 espectre:
   raw_csi_enabled: true
-  raw_csi_server_ip: "192.168.1.100"
+  raw_csi_server_ip: "192.168.42.117"
   raw_csi_server_port: 5001
   raw_csi_interval: 10  # 100Hz
 ```
@@ -238,7 +238,7 @@ espectre:
   
   # Coleta de dados CSI crus (NOVO)
   raw_csi_enabled: true
-  raw_csi_server_ip: "192.168.1.100"
+  raw_csi_server_ip: "192.168.42.117"
   raw_csi_server_port: 5001
   raw_csi_interval: 10  # 100Hz (2-1000ms)
 ```
@@ -392,6 +392,8 @@ Seq: 2, Channel: 6, Gain: True, CSI: 128 samples
 # - Sinal WiFi (RSSI deve ser >-70)
 # - Congestionamento de rede
 # - Capacidade do servidor
+# - IP do servidor: 192.168.42.117
+# - IP do ESP: 192.168.42.32
 ```
 
 ---

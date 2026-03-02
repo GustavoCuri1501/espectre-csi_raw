@@ -1,0 +1,69 @@
+# Example ESPectre configuration with Raw CSI Streaming
+# Save as: espectre_raw_csi.yaml
+
+esphome:
+  name: espectre-csi
+  friendly_name: ESPectre CSI
+  
+  # ESP32-C6 recommended (best CSI quality)
+  esp32:
+    board: esp32-c6-devkitc-1
+    framework:
+      type: esp-idf
+
+logger:
+  # USB Serial JTAG for logging (required on C6)
+  level: DEBUG
+  
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  
+  # Static IP for ESP32-S3 LilyGO
+  manual_ip:
+    static_ip: 192.168.42.32
+    gateway: 192.168.42.1
+    subnet: 255.255.255.0
+
+# ESPectre Component Configuration
+espectre:
+  # ============================================
+  # MOTION DETECTION (Optional - keeps HA integration)
+  # ============================================
+  segmentation_threshold: auto  # auto, min, or numeric (0.1-10.0)
+  segmentation_window_size: 75
+  detection_algorithm: mvs      # mvs or ml
+  
+  # Optional sensors for Home Assistant
+  movement_sensor:
+    name: "Movement Score"
+  motion_sensor:
+    name: "Motion Binary"
+    
+  # ============================================
+  # RAW CSI STREAMING (NEW FEATURE)
+  # ============================================
+  raw_csi_enabled: true                    # Enable raw CSI streaming
+  raw_csi_server_ip: "192.168.42.117"      # IP do servidor Python
+  raw_csi_server_port: 5001                # UDP port (default 5001)
+  raw_csi_interval: 10                     # Send interval in ms (2-1000, default 10 = 100Hz)
+  
+  # ============================================
+  # TRAFFIC GENERATOR (Optional)
+  # ============================================
+  traffic_generator_rate: 100    # WiFi traffic rate (0 = external traffic)
+  traffic_generator_mode: dns    # dns or ping
+  
+  # ============================================
+  # ADVANCED OPTIONS (Optional)
+  # ============================================
+  gain_lock: auto              # auto, enabled, or disabled
+  lowpass_enabled: false       # Noise reduction filter
+  hampel_enabled: false        # Outlier removal filter
+
+# ============================================
+# SECRET CONFIGURATION
+# ============================================
+# Create secrets.yaml file with:
+# wifi_ssid: "YourWiFiNetwork"
+# wifi_password: "YourWiFiPassword"
