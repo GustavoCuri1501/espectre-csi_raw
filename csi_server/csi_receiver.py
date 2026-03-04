@@ -156,6 +156,10 @@ class CSIServer:
         # Buffer for recent packets
         self.recent_packets = deque(maxlen=1000)
 
+        # Buffer for detecting duplicate/out-of-order packets
+        self.seen_sequences = set()
+        self.max_seen_sequences = 1000
+
     def setup_files(self):
         """Create output directory and files"""
         self.save_dir.mkdir(parents=True, exist_ok=True)
@@ -251,13 +255,34 @@ class CSIServer:
         gain_locked = bool(flags & FLAG_GAIN_LOCKED)
         stbc = bool(flags & FLAG_STBC)
 
-        # Detect dropped packets
+        # Check for duplicate packets using circular buffer
+        if seq in self.seen_sequences:
+            self.packets_dropped += 1  # Count duplicate
+            return None  # Skip duplicate packet
+
+        # Add to seen sequences buffer
+        if len(self.seen_sequences) >= self.max_seen_sequences:
+            # Remove oldest entries to keep buffer size manageable
+            # Remove ~20% of entries to avoid growing unbounded
+            to_remove = self.max_seen_sequences // 5
+            for _ in range(to_remove):
+                if self.seen_sequences:
+                    self.seen_sequences.pop()
+        self.seen_sequences.add(seq)
+
+        # Detect dropped packets (count each lost packet as 1, not the difference)
         if self.last_seq >= 0:
             expected = (self.last_seq + 1) % 65536
             if seq != expected:
-                dropped = (seq - expected) % 65536
-                if dropped > 0:
-                    self.packets_dropped += dropped
+                # Calculate gap, handling wrap-around
+                gap = (seq - expected) % 65536
+                # Only count as dropped if gap is reasonable (< 32768 to avoid wrap-around issues)
+                if gap > 0 and gap < 32768:
+                    # Count each missing packet as 1 dropped packet
+                    self.packets_dropped += 1
+                elif gap >= 32768:
+                    # Likely wrap-around or severe reordering, count as 1 drop
+                    self.packets_dropped += 1
 
         self.last_seq = seq
 
