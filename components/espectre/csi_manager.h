@@ -158,6 +158,12 @@ class CSIManager {
    */
   void clear_detector_buffer();
   
+  /**
+   * Getters for display manager
+   */
+  uint32_t get_packets_per_second() const { return packets_per_second_; }
+  int8_t get_last_rssi() const { return last_rssi_; }
+  
  private:
   static void IRAM_ATTR csi_rx_callback_wrapper_(void* ctx, wifi_csi_info_t* data);
   
@@ -181,6 +187,9 @@ class CSIManager {
   static constexpr uint8_t NUM_SUBCARRIERS = HT20_SELECTED_BAND_SIZE;
   
   esp_err_t configure_platform_specific_();
+  
+  volatile uint32_t packets_per_second_{0};
+  volatile int8_t last_rssi_{0};
 };
 
 }  // namespace espectre

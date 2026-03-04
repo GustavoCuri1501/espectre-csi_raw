@@ -25,7 +25,10 @@ from typing import Optional, Tuple, List
 
 # Packet format constants
 MAGIC = 0x43535241  # "CSRA" in little-endian
-HEADER_FORMAT = "<IIBB"  # magic(4) + timestamp(4) + seq(2) + channel(1) + flags(1)
+# Format: magic(4) + timestamp(4) + seq(2) + channel(1) + flags(1) = 12 bytes
+HEADER_FORMAT = (
+    "<IIHBB"  # magic(uint32)+timestamp(uint32)+seq(uint16)+channel(uint8)+flags(uint8)
+)
 HEADER_SIZE = 12
 CSI_SIZE = 128  # 64 subcarriers × 2 (I/Q)
 PACKET_SIZE = HEADER_SIZE + CSI_SIZE
@@ -213,10 +216,12 @@ class CSIServer:
         """Parse raw UDP data into CSIPacket"""
         if len(data) != PACKET_SIZE:
             self.packets_invalid += 1
-            if self.packets_invalid % 100 == 1:
+            if self.packets_invalid % 10 == 1:
                 print(
-                    f"[WARN] Invalid packet size: {len(data)} (expected {PACKET_SIZE})"
+                    f"[WARN] Invalid packet size: {len(data)} bytes (expected {PACKET_SIZE})"
                 )
+                if len(data) > 0:
+                    print(f"  First 20 bytes: {data[:20].hex()}")
             return None
 
         # Parse header
@@ -227,6 +232,9 @@ class CSIServer:
         except struct.error as e:
             self.packets_invalid += 1
             print(f"[ERROR] Failed to parse header: {e}")
+            print(
+                f"  Data length: {len(data)}, first 20 bytes: {data[:20].hex() if len(data) >= 20 else data.hex()}"
+            )
             return None
 
         # Validate magic

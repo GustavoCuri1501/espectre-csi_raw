@@ -112,9 +112,23 @@ void CSIManager::process_packet(wifi_csi_info_t* data) {
   
   detector_->process_packet(csi_data, csi_len, selected_subcarriers_, NUM_SUBCARRIERS);
   
+  // Update RSSI for display
+  last_rssi_ = data->rx_ctrl.rssi;
+  
   // Handle periodic callback (or game mode which needs every packet)
   packets_processed_++;
   const bool should_publish = packets_processed_ >= publish_rate_;
+  
+  // Calculate packets per second (updated every second)
+  static uint32_t last_pps_update = 0;
+  static uint32_t pps_count = 0;
+  uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);  // Convert to ms
+  if (now - last_pps_update >= 1000) {
+    packets_per_second_ = pps_count;
+    pps_count = 0;
+    last_pps_update = now;
+  }
+  pps_count++;
   
   if (game_mode_callback_ || should_publish) {
     // Update detector state (lazy evaluation)
