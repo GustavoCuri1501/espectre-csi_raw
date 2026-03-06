@@ -23,8 +23,9 @@ esp32:
     version: recommended
 
 logger:
-  # USB Serial JTAG for logging (required on S3)
   level: DEBUG
+
+api:
 
 wifi:
   ssid: !secret wifi_ssid
@@ -55,7 +56,7 @@ espectre:
   # RAW CSI STREAMING (NEW FEATURE)
   # ============================================
   raw_csi_enabled: true                    # Enable raw CSI streaming
-  raw_csi_server_ip: "192.168.42.117"      # IP do servidor Python
+  raw_csi_server_ip: "192.168.42.175"      # IP do servidor Python
   raw_csi_server_port: 5001                # UDP port (default 5001)
   raw_csi_interval: 10                     # Send interval in ms (2-1000, default 10 = 100Hz)
   

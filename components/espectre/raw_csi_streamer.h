@@ -29,6 +29,7 @@
 #include <lwip/sockets.h>
 #include <lwip/netdb.h>
 #include <netinet/in.h>
+#include <fcntl.h>
 
 namespace esphome {
 namespace espectre {
@@ -131,6 +132,7 @@ class RawCSIStreamer : public Component {
   // State
   bool running_{false};
   bool socket_initialized_{false};
+  int sock_fd_{-1};  // Reusable socket file descriptor
   
   // Statistics
   uint32_t packets_sent_{0};

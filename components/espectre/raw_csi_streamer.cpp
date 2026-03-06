@@ -23,13 +23,14 @@ namespace espectre {
 static const char *const TAG = "raw_csi_streamer";
 
 void RawCSIStreamer::setup() {
-  // Setup is handled by init() called from main component
+  // Initialize socket file descriptor
+  sock_fd_ = -1;
   ESP_LOGD(TAG, "Raw CSI Streamer setup complete");
 }
 
 void RawCSIStreamer::loop() {
   // Non-blocking loop - check if we should send
-  // Actual sending happens via callback from CSI manager, so this is just a placeholder
+  // Actual sending happens via callback from CSI manager
   if (!running_) return;
 }
 
@@ -73,8 +74,31 @@ bool RawCSIStreamer::init_socket_() {
   server_addr_.sin_port = htons(server_port_);
   memcpy(&server_addr_.sin_addr.s_addr, server->h_addr_list[0], server->h_length);
   
+  // Create UDP socket (reuse existing if open)
+  if (sock_fd_ >= 0) {
+    ESP_LOGD(TAG, "Closing existing socket before re-initialization");
+    ::close(sock_fd_);
+    sock_fd_ = -1;
+  }
+  
+  sock_fd_ = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (sock_fd_ < 0) {
+    ESP_LOGE(TAG, "Failed to create socket: err=%d", sock_fd_);
+    return false;
+  }
+  
+  // Set socket to non-blocking mode for better performance
+  int flags = fcntl(sock_fd_, F_GETFL, 0);
+  if (flags < 0) {
+    ESP_LOGW(TAG, "Failed to get socket flags: err=%d", flags);
+  } else {
+    if (fcntl(sock_fd_, F_SETFL, flags | O_NONBLOCK) < 0) {
+      ESP_LOGW(TAG, "Failed to set socket non-blocking: err=%d", errno);
+    }
+  }
+  
   socket_initialized_ = true;
-  ESP_LOGD(TAG, "Socket initialized successfully");
+  ESP_LOGD(TAG, "Socket initialized successfully (fd=%d, non-blocking)", sock_fd_);
   
   return true;
 }
@@ -85,7 +109,7 @@ void RawCSIStreamer::start() {
     return;
   }
   
-  if (!socket_initialized_) {
+  if (!socket_initialized_ || sock_fd_ < 0) {
     ESP_LOGE(TAG, "Socket not initialized, calling init_socket_()");
     if (!init_socket_()) {
       return;
@@ -99,13 +123,19 @@ void RawCSIStreamer::start() {
   last_send_time_ms_ = 0;
   next_send_time_ms_ = 0;
   
-  ESP_LOGI(TAG, "Raw CSI streaming started");
+  ESP_LOGI(TAG, "Raw CSI streaming started (socket fd=%d)", sock_fd_);
 }
 
 void RawCSIStreamer::stop() {
   if (!running_) return;
   
   running_ = false;
+  
+  // Close socket
+  if (sock_fd_ >= 0) {
+    ::close(sock_fd_);
+    sock_fd_ = -1;
+  }
   
   ESP_LOGI(TAG, "Raw CSI streaming stopped");
   ESP_LOGI(TAG, "Total packets sent: %u", packets_sent_);
@@ -137,7 +167,7 @@ void RawCSIStreamer::send_packet(const int8_t* csi_data, size_t csi_len, uint32_
 }
 
 bool RawCSIStreamer::send_binary_packet_(const int8_t* csi_data, size_t csi_len, uint32_t timestamp,
-                                         uint8_t channel, uint8_t flags) {
+                                          uint8_t channel, uint8_t flags) {
   // Build header
   uint8_t *buf = packet_buffer_;
   
@@ -166,24 +196,15 @@ bool RawCSIStreamer::send_binary_packet_(const int8_t* csi_data, size_t csi_len,
   // Copy CSI payload (128 bytes)
   memcpy(&buf[RAW_CSI_HEADER_SIZE], csi_data, csi_len);
   
-  // Send via UDP using lwIP socket API
-  int sock_fd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-  if (sock_fd < 0) {
-    ESP_LOGE(TAG, "Failed to create socket: err=%d", sock_fd);
+  // Check if socket is valid
+  if (sock_fd_ < 0) {
+    ESP_LOGE(TAG, "Socket not initialized (fd=%d)", sock_fd_);
     return false;
   }
   
-  // Set send timeout (non-blocking)
-  struct timeval tv;
-  tv.tv_sec = 0;
-  tv.tv_usec = 10000;  // 10ms timeout
-  ::setsockopt(sock_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-  
-  // Send packet
-  ssize_t sent = ::sendto(sock_fd, packet_buffer_, RAW_CSI_PACKET_SIZE, 0,
+  // Send packet using pre-created socket (no close!)
+  ssize_t sent = ::sendto(sock_fd_, packet_buffer_, RAW_CSI_PACKET_SIZE, 0,
                          (struct sockaddr*)&server_addr_, sizeof(server_addr_));
-  
-  ::close(sock_fd);
   
   if (sent != RAW_CSI_PACKET_SIZE) {
     ESP_LOGW(TAG, "Send failed: sent=%zd, expected=%u", sent, RAW_CSI_PACKET_SIZE);
