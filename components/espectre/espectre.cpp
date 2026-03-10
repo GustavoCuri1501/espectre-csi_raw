@@ -254,6 +254,13 @@ void ESpectreComponent::set_threshold_runtime(float threshold) {
   ESP_LOGI(TAG, "Threshold updated to %.2f (session-only, recalculated at boot)", threshold);
 }
 
+void ESpectreComponent::set_traffic_generator_rate_runtime(uint32_t rate) {
+  this->traffic_generator_rate_ = rate;
+  this->traffic_generator_.set_rate(rate);
+  
+  ESP_LOGI(TAG, "Traffic generator rate updated to %u pps", rate);
+}
+
 void ESpectreComponent::start_calibration_() {
   // ML detector uses fixed subcarriers from training - no calibration needed
   if (this->detection_algorithm_ == DetectionAlgorithm::ML) {

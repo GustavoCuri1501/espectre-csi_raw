@@ -122,7 +122,16 @@ class TrafficGeneratorManager {
    * Resume traffic generator after pause
    */
   void resume();
-  
+
+  /**
+   * Set traffic rate at runtime
+   * 
+   * Stops current generator if running, updates rate, restarts.
+   * 
+   * @param rate_pps New packets per second rate
+   */
+  void set_rate(uint32_t rate_pps);
+
   /**
    * Check if traffic generator is paused
    * 

@@ -128,6 +128,9 @@ class ESpectreComponent : public Component {
   void set_threshold_runtime(float threshold);
   float get_threshold() const { return this->segmentation_threshold_; }
   
+  // Runtime traffic generator rate adjustment
+  void set_traffic_generator_rate_runtime(uint32_t rate);
+  
   // Runtime calibration trigger (called from HA via switch component)
   void trigger_recalibration();
   
@@ -138,6 +141,11 @@ class ESpectreComponent : public Component {
   
   // Setter for calibrate switch control
   void set_calibrate_switch(switch_::Switch *sw) { this->calibrate_switch_ = sw; }
+  
+  // Getters para uso em lambdas
+  uint32_t get_traffic_generator_rate() const { return this->traffic_generator_rate_; }
+  MotionState get_motion_state() const { return this->motion_state_; }
+  float get_segmentation_threshold() const { return this->segmentation_threshold_; }
   
  protected:
   // Start band/baseline calibration (shared by boot and runtime trigger)

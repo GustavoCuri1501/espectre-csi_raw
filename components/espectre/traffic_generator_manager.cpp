@@ -120,6 +120,22 @@ void TrafficGeneratorManager::resume() {
   }
 }
 
+void TrafficGeneratorManager::set_rate(uint32_t rate_pps) {
+  bool was_running = running_.load();
+  
+  if (was_running) {
+    stop();
+  }
+  
+  rate_pps_ = rate_pps;
+  
+  if (was_running && rate_pps > 0) {
+    start();
+  }
+  
+  ESP_LOGI(TAG, "Traffic rate updated to %u pps", rate_pps);
+}
+
 void TrafficGeneratorManager::stop() {
   if (!running_.load()) {
     return;
